@@ -4,16 +4,22 @@ A mobile-first, touch-controlled 2D side-scrolling platformer in the spirit
 of classic NES platformers. Vanilla JS + HTML5 Canvas, built on Vite. Sprites
 are procedurally generated in code (no external assets, no third-party IP).
 
-## Run it
+## Play it (easiest)
+
+Just **double-click `PixelPlumber.html`** at the root of this repo. It's a
+single self-contained file (everything inlined — no server, no install). Opens
+straight in your browser. Works on desktop and mobile.
+
+To play on your phone: AirDrop / iCloud Drive / Google Drive / email the
+`PixelPlumber.html` file to yourself and open it from there.
+
+## Develop it
 
 ```bash
 npm install
-npm run dev      # local dev server (open in phone browser on same wifi)
-npm run build    # production build → dist/
-npm run preview  # preview production build
+npm run dev      # live-reload dev server
+npm run build    # rebuilds PixelPlumber.html
 ```
-
-The page is fixed-position fullscreen; it works best opened directly on a phone.
 
 ## Controls
 
