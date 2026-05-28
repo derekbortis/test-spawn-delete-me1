@@ -101,15 +101,13 @@ export class Level {
   isQuestion(tx, ty) { return this.at(tx, ty) === '?'; }
   isBreakable(tx, ty) { return this.at(tx, ty) === 'B'; }
 
-  // returns the powerup type to spawn from a '?' tile (or null for coin)
-  promoteQuestion(tx, ty) {
-    const i = ty * this.w + tx;
-    if (this.powerupQuestions.has(i)) {
-      this.powerupQuestions.delete(i);
-      // first remaining = mushroom, then flower, alternate
-      return Math.random() < 0.5 ? 'mushroom' : 'flower';
-    }
-    return null;
+  // Does this '?' tile carry a powerup payload? Caller picks mushroom vs flower
+  // based on player state (small → mushroom; big/fire → flower).
+  isPowerupQuestion(tx, ty) {
+    return this.powerupQuestions.has(ty * this.w + tx);
+  }
+  consumePowerupQuestion(tx, ty) {
+    this.powerupQuestions.delete(ty * this.w + tx);
   }
 
   render(ctx, camX, camY, viewW, viewH, t) {

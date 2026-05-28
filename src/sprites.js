@@ -498,8 +498,7 @@ const tile_question = [
 
 const tile_question_used = [
   'KKKKKKKKKKKKKKKK',
-  'KoooooooooooooooK'.slice(0, 16),
-  'KooEEEEEEEEEEEEK',
+  'KooooooooooooooK',
   'KoEEEEEEEEEEEEoK',
   'KoEEEEEEEEEEEEoK',
   'KoEEEEEEEEEEEEoK',
@@ -511,7 +510,8 @@ const tile_question_used = [
   'KoEEEEEEEEEEEEoK',
   'KoEEEEEEEEEEEEoK',
   'KoEEEEEEEEEEEEoK',
-  'KoooooooooooooKK'.slice(0, 16),
+  'KoEEEEEEEEEEEEoK',
+  'KooooooooooooooK',
   'KKKKKKKKKKKKKKKK',
 ];
 

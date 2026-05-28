@@ -2,6 +2,7 @@
 
 import { Game, VIEW_W, VIEW_H } from './game.js';
 import { setupInput } from './input.js';
+import { sfx } from './audio.js';
 
 const canvas      = document.getElementById('stage');
 const actionBtn   = document.getElementById('action-btn');
@@ -41,13 +42,16 @@ const overlayEls = {
 
 const game = new Game(canvas, hudEls, overlayEls);
 
-overlayBtn.addEventListener('click', (e) => {
+function beginGame(e) {
   e.preventDefault();
+  sfx.init(); // user-gesture init for WebAudio
   if (game.state === 'gameover' || game.state === 'win') {
     game.reset(true);
   }
   game.start();
-});
+}
+overlayBtn.addEventListener('click', beginGame);
+overlayBtn.addEventListener('touchend', beginGame);
 
 let lastT = performance.now();
 function frame(t) {

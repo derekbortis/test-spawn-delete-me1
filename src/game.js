@@ -7,6 +7,7 @@ import { Goomba, Koopa, Coin, Powerup, Fireball, BrickBit } from './entities.js'
 import { input, sampleInput } from './input.js';
 import { SPRITES, bakeSprites } from './sprites.js';
 import { TILE, aabbOverlap } from './physics.js';
+import { sfx } from './audio.js';
 
 // Logical resolution. The canvas is rendered at this resolution then scaled
 // (via CSS) to fit the device. 320 x 192 ≈ 5:3, fits well on most phones.
@@ -23,6 +24,7 @@ export class Game {
     this.ctx.imageSmoothingEnabled = false;
     this.hud = hudEls;
     this.overlay = overlayEls;
+    this.sfx = sfx;
 
     bakeSprites();
 
@@ -94,7 +96,8 @@ export class Game {
   addScore(n) { this.score += n; this.refreshHUD(); }
   addCoin(n = 1) {
     this.coins += n;
-    if (this.coins >= 100) { this.coins -= 100; this.lives += 1; }
+    if (this.coins >= 100) { this.coins -= 100; this.lives += 1; this.sfx.oneUp(); }
+    this.sfx.coin();
     this.addScore(200);
   }
 
@@ -102,11 +105,14 @@ export class Game {
   bumpTile(tx, ty, player) {
     const c = this.level.at(tx, ty);
     if (c === '?') {
-      const power = this.level.promoteQuestion(tx, ty);
+      const hasPower = this.level.isPowerupQuestion(tx, ty);
       this.level.set(tx, ty, 'U');
       this.cameraShake = 0.08;
-      if (power) {
-        this.pickups.push(new Powerup(tx * TILE + 1, ty * TILE, power));
+      this.sfx.bump();
+      if (hasPower) {
+        this.level.consumePowerupQuestion(tx, ty);
+        const kind = player.isBig() ? 'flower' : 'mushroom';
+        this.pickups.push(new Powerup(tx * TILE + 1, ty * TILE, kind));
       } else {
         this.popupCoins.push(Coin.popFromBlock(tx * TILE, ty * TILE));
         this.addCoin(1);
@@ -115,7 +121,7 @@ export class Game {
       if (player.isBig()) {
         this.level.set(tx, ty, '.');
         this.addScore(50);
-        // brick chunks
+        this.sfx.brick();
         const cx = tx * TILE + 8;
         const cy = ty * TILE + 8;
         for (const [vx, vy] of [[-80, -260], [80, -260], [-120, -180], [120, -180]]) {
@@ -123,6 +129,7 @@ export class Game {
         }
       } else {
         this.cameraShake = 0.08;
+        this.sfx.bump();
       }
     }
   }
@@ -131,11 +138,10 @@ export class Game {
     const fx = player.x + (player.facing > 0 ? player.w : -2);
     const fy = player.y + 6;
     this.fireballs.push(new Fireball(fx, fy, player.facing));
+    this.sfx.fire();
   }
 
-  onJump() {
-    // (audio hook point)
-  }
+  onJump() { this.sfx.jump(); }
 
   // --- main step ---
   tick(rawDt) {
@@ -195,14 +201,19 @@ export class Game {
           }
           this.player.vy = -260; // bounce
           this.player.holdingJump = input.jumpHeld; // keep variable
+          this.sfx.stomp();
         } else {
           // sliding shells are dangerous; walking koopa in shell mode is safe-to-kick
           if (e instanceof Koopa && e.state === 'shell' && Math.abs(e.vx) < 1) {
             // kick
             e.hitFromSide(this.player);
             this.addScore(400);
+            this.sfx.stomp();
           } else {
+            const wasSmall = !this.player.isBig();
             this.player.takeDamage();
+            this.sfx.hit();
+            if (wasSmall) this.sfx.death();
           }
         }
       }
@@ -220,6 +231,7 @@ export class Game {
         p.dead = true;
         this.player.powerUp(p.kind);
         this.addScore(p.kind === 'flower' ? 1000 : 500);
+        this.sfx.powerup();
       }
     }
 
@@ -232,6 +244,7 @@ export class Game {
         this.player.vy = 0;
         this.player.x = this.level.flagpoleX - 4;
         this.addScore(1000 + Math.max(0, Math.floor(this.timer)) * 10);
+        this.sfx.win();
       }
     }
 
