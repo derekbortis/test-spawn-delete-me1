@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"require('fs').copyFileSync('dist/index.html','PixelPlumber.html')\"",
+    "build": "vite build && node scripts/postbuild.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "jsdom": "^29.1.1",
     "vite": "^8.0.12",
     "vite-plugin-singlefile": "^2.3.3"
   }
