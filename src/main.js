@@ -42,16 +42,27 @@ const overlayEls = {
 
 const game = new Game(canvas, hudEls, overlayEls);
 
+let starting = false;
 function beginGame(e) {
-  e.preventDefault();
-  sfx.init(); // user-gesture init for WebAudio
+  if (starting) return;
+  starting = true;
+  if (e && e.cancelable) {
+    try { e.preventDefault(); } catch { /* ignore */ }
+  }
+  try { sfx.init(); } catch { /* audio is non-fatal */ }
   if (game.state === 'gameover' || game.state === 'win') {
     game.reset(true);
   }
   game.start();
+  setTimeout(() => { starting = false; }, 250);
 }
-overlayBtn.addEventListener('click', beginGame);
-overlayBtn.addEventListener('touchend', beginGame);
+// Listen on both the button AND the overlay div, with both pointerup and click,
+// so a tap anywhere on the overlay starts the game regardless of which event
+// the browser delivers first.
+for (const el of [overlayBtn, overlay]) {
+  el.addEventListener('click',     beginGame);
+  el.addEventListener('pointerup', beginGame);
+}
 
 let lastT = performance.now();
 function frame(t) {
