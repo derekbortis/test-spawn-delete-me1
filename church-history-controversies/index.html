@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="A study of the great controversies of church history. First: the Filioque — the clause that divided East and West — mapped across the early church fathers."
+    />
+    <meta name="theme-color" content="#000000" />
+    <title>Church History · Controversies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- Frosted navigation -->
+    <header class="nav" id="nav">
+      <div class="nav__inner">
+        <a class="nav__brand" href="#top">
+          <span class="nav__mark">✣</span>
+          <span class="nav__title">Controversies</span>
+        </a>
+        <nav class="nav__links">
+          <a href="#filioque">Filioque</a>
+          <a href="#map">The Map</a>
+          <a href="#fathers">Fathers</a>
+        </nav>
+        <button class="nav__theme" id="themeToggle" aria-label="Toggle appearance">
+          <span class="nav__theme-icon">◐</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero__glow" aria-hidden="true"></div>
+        <div class="hero__inner reveal">
+          <p class="hero__eyebrow">Church History · Controversies</p>
+          <h1 class="hero__title">
+            The clause that<br /><span class="grad">divided Christendom.</span>
+          </h1>
+          <p class="hero__sub">
+            One Latin word — <em>Filioque</em>, “and the Son” — reshaped the
+            Creed and split the Church into East and West. Here is where the
+            early Fathers actually stood.
+          </p>
+          <div class="hero__cta">
+            <a class="btn btn--primary" href="#filioque">Begin</a>
+            <a class="btn btn--ghost" href="#map">See the map</a>
+          </div>
+        </div>
+        <div class="hero__scroll" aria-hidden="true">
+          <span></span>
+        </div>
+      </section>
+
+      <!-- What is the Filioque -->
+      <section class="section" id="filioque">
+        <div class="section__head reveal">
+          <p class="eyebrow">The controversy</p>
+          <h2 class="section__title">What is the <span class="grad">Filioque?</span></h2>
+        </div>
+        <div class="prose reveal">
+          <p>
+            The Nicene-Constantinopolitan Creed of <strong>381</strong> confessed
+            that the Holy Spirit “proceeds from the Father.” Over the following
+            centuries the Latin West added one word —
+            <strong><em>Filioque</em></strong>, “<em>and the Son</em>” — so that
+            the Spirit now proceeded “from the Father <em>and the Son</em>.”
+          </p>
+          <p>
+            To the West this clarified the Spirit's eternal relation to Christ.
+            To the East it was a unilateral tampering with an ecumenical Creed
+            and a theological error that confused the Persons of the Trinity. It
+            became the central doctrinal fault line of the
+            <strong>Great Schism of 1054</strong> — and it divides the Catholic
+            and Orthodox churches to this day.
+          </p>
+          <div class="note">
+            <span class="note__tag">A note on method</span>
+            <p>
+              Reading the fully developed doctrine back into the earliest
+              Fathers is anachronistic — most wrote before the question was
+              sharply posed. The honest map is not “for vs. against” but a
+              <strong>spectrum</strong>: explicit double procession in the Latin
+              West, the contested middle ground of “<em>through the Son</em>,”
+              and the Eastern insistence on the Father as sole cause.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- The three positions map -->
+      <section class="section section--alt" id="map">
+        <div class="section__head reveal">
+          <p class="eyebrow">The spectrum</p>
+          <h2 class="section__title">Three <span class="grad">positions</span></h2>
+        </div>
+        <div class="cards3" id="positionCards"></div>
+      </section>
+
+      <!-- The fathers -->
+      <section class="section" id="fathers">
+        <div class="section__head reveal">
+          <p class="eyebrow">The witnesses</p>
+          <h2 class="section__title">The <span class="grad">Fathers</span>, in their own words</h2>
+          <p class="section__lead">
+            Tap any card to read the quote and source. Filter by where each
+            Father lands.
+          </p>
+        </div>
+
+        <!-- Apple-style segmented control -->
+        <div class="segmented" id="filter" role="tablist" aria-label="Filter by position">
+          <span class="segmented__pill" id="segPill" aria-hidden="true"></span>
+          <button class="segmented__btn is-active" data-filter="all" role="tab">All</button>
+          <button class="segmented__btn" data-filter="endorse" role="tab">Endorse</button>
+          <button class="segmented__btn" data-filter="through" role="tab">Through the Son</button>
+          <button class="segmented__btn" data-filter="father" role="tab">Father Alone</button>
+        </div>
+
+        <div class="fathers" id="fatherGrid"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <p class="footer__mark">✣</p>
+        <p class="footer__line">
+          Church History · Controversies — an evolving study. Quotations are
+          drawn from standard patristic sources and are given for study, not as
+          critical-edition citations.
+        </p>
+        <p class="footer__small">Next up: Iconoclasm · The Council of Chalcedon · Pelagius</p>
+      </div>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
