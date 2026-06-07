@@ -1,204 +1,137 @@
-// Touch input. Exposes a single `input` object the game reads each frame.
+// SNES-style virtual gamepad input. Buttons in the DOM drive a shared
+// snapshot object the game reads each frame.
 //
-// Touch model:
-//   - Left ~65% of screen is the "movement pad": drag-to-walk + swipe-up-to-jump
-//   - Bottom 30% of that pad while holding still = crouch
-//   - The action button (separate DOM element) is run-and-fire
-//   - Mouse + arrow keys are mirrored for desktop testing
+// Mapping:
+//   Left / Right d-pad → moveX (-1 / +1)
+//   Down d-pad         → crouch (held)
+//   Up d-pad           → also triggers jump (extra option, since Up doesn't do much in this game)
+//   A                  → jump (variable-height via hold/release)
+//   B                  → run + fire (held = run; press = fire when powered)
 //
-// Feel:
-//   - Jump fires immediately on upward swipe velocity threshold (no debounce
-//     wait) and is "held" as long as the finger remains down — that lets the
-//     player-side jump-cut logic do variable height.
-//   - Drag-to-walk uses the *current* x-delta from the touchstart point
-//     instead of velocity, so a held finger keeps moving without retriggering.
+// Keyboard mirrors the same mapping (Arrow keys + Z/X) for desktop testing.
 
 export const input = {
-  moveX: 0,          // -1..1
-  jumpPressed: false,// edge: cleared after consumption
+  moveX: 0,
+  jumpPressed: false,
   jumpHeld: false,
   crouch: false,
-  run: false,        // action button (run + fire)
-  firePressed: false,// edge from run button taps while powered
-  paused: false,
+  run: false,
+  firePressed: false,
 };
 
-const MOVE_DEADZONE = 6;
-const MOVE_MAX = 38;            // pixels of drag → full speed
-const SWIPE_VEL_THRESHOLD = 520; // px/sec upward to trigger jump
-const SWIPE_DY_MIN = 14;        // px minimum upward motion
-const TAP_MAX_MS = 180;         // quick tap also triggers a jump
-const TAP_MAX_MOVE = 10;        // tap must not have moved much
-const CROUCH_BOTTOM_FRAC = 0.32;// of pad height
+// Per-button held state. Lets us combine multiple sources (touch + keys).
+const held = { left: 0, right: 0, down: 0, up: 0, a: 0, b: 0 };
 
-const padTouches = new Map();   // pointerId → state
+function recompute() {
+  const leftOn  = held.left  > 0;
+  const rightOn = held.right > 0;
+  input.moveX = leftOn && !rightOn ? -1 : rightOn && !leftOn ? 1 : 0;
+  input.crouch = held.down > 0;
+}
 
-let stageEl = null;
-let actionBtn = null;
-
-export function setupInput(stage, action) {
-  stageEl = stage;
-  actionBtn = action;
-
-  // Block default behaviors that hurt mobile games.
-  const block = (e) => { e.preventDefault(); };
-  document.addEventListener('gesturestart', block, { passive: false });
-  document.addEventListener('gesturechange', block, { passive: false });
-  document.addEventListener('gestureend', block, { passive: false });
-  document.addEventListener('contextmenu', block);
-
-  // pad listeners on the canvas
-  stage.addEventListener('pointerdown', onPadDown, { passive: false });
-  stage.addEventListener('pointermove', onPadMove, { passive: false });
-  stage.addEventListener('pointerup', onPadUp, { passive: false });
-  stage.addEventListener('pointercancel', onPadUp, { passive: false });
-
-  // action button
+function bindButton(el, key, opts = {}) {
+  if (!el) return;
+  let activePointer = null;
   const press = (e) => {
-    e.preventDefault();
-    actionBtn.classList.add('pressed');
-    if (!input.run) input.firePressed = true;
-    input.run = true;
+    if (e && e.cancelable) e.preventDefault();
+    if (activePointer !== null && e && e.pointerId !== activePointer) return;
+    if (e && 'pointerId' in e) activePointer = e.pointerId;
+    if (held[key] === 0) opts.onPress?.();
+    held[key]++;
+    el.classList.add('pressed');
+    recompute();
   };
   const release = (e) => {
-    e.preventDefault();
-    actionBtn.classList.remove('pressed');
-    input.run = false;
-  };
-  actionBtn.addEventListener('pointerdown', press, { passive: false });
-  actionBtn.addEventListener('pointerup', release, { passive: false });
-  actionBtn.addEventListener('pointercancel', release, { passive: false });
-  actionBtn.addEventListener('pointerleave', release, { passive: false });
-
-  // Desktop fallback
-  window.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
-    if (e.key === 'ArrowLeft' || e.key === 'a') keyMoveX = -1;
-    else if (e.key === 'ArrowRight' || e.key === 'd') keyMoveX = 1;
-    else if (e.key === 'ArrowDown' || e.key === 's') input.crouch = true;
-    else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') {
-      input.jumpPressed = true;
-      input.jumpHeld = true;
-    } else if (e.key === 'Shift' || e.key === 'x') {
-      if (!input.run) input.firePressed = true;
-      input.run = true;
+    if (e && e.cancelable) e.preventDefault();
+    if (e && 'pointerId' in e && activePointer !== null && e.pointerId !== activePointer) return;
+    activePointer = null;
+    if (held[key] > 0) held[key]--;
+    if (held[key] === 0) {
+      el.classList.remove('pressed');
+      opts.onRelease?.();
     }
+    recompute();
+  };
+  el.addEventListener('pointerdown',   press,   { passive: false });
+  el.addEventListener('pointerup',     release, { passive: false });
+  el.addEventListener('pointercancel', release, { passive: false });
+  el.addEventListener('pointerleave',  release, { passive: false });
+  // Block context menu on long-press
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+export function setupInput(refs) {
+  // refs: { dpad: {up,down,left,right}, a, b }
+
+  // Block iOS pinch/double-tap zoom at the page level
+  const blockGesture = (e) => e.preventDefault();
+  document.addEventListener('gesturestart',  blockGesture, { passive: false });
+  document.addEventListener('gesturechange', blockGesture, { passive: false });
+  document.addEventListener('gestureend',    blockGesture, { passive: false });
+  document.addEventListener('contextmenu',   blockGesture);
+
+  bindButton(refs.dpad.left,  'left');
+  bindButton(refs.dpad.right, 'right');
+  bindButton(refs.dpad.down,  'down');
+
+  // Up triggers an alternate jump (handy for thumbs already on the d-pad)
+  bindButton(refs.dpad.up, 'up', {
+    onPress: () => { input.jumpPressed = true; input.jumpHeld = true; },
+    onRelease: () => { input.jumpHeld = false; },
+  });
+
+  // A = jump (variable height)
+  bindButton(refs.a, 'a', {
+    onPress: () => { input.jumpPressed = true; input.jumpHeld = true; },
+    onRelease: () => { input.jumpHeld = false; },
+  });
+
+  // B = run + fire
+  bindButton(refs.b, 'b', {
+    onPress: () => { if (!input.run) input.firePressed = true; input.run = true; },
+    onRelease: () => { input.run = false; },
+  });
+
+  // ----- Keyboard fallback (desktop) -----
+  const keymap = {
+    ArrowLeft: 'left', a: 'left',
+    ArrowRight: 'right', d: 'right',
+    ArrowDown: 'down', s: 'down',
+    ArrowUp: 'up', w: 'up',
+    ' ': 'a', z: 'a', x: 'b', Shift: 'b',
+  };
+  const downKeys = new Set();
+  window.addEventListener('keydown', (e) => {
+    const key = keymap[e.key];
+    if (!key) return;
+    if (e.repeat || downKeys.has(e.key)) return;
+    downKeys.add(e.key);
+    held[key]++;
+    if (key === 'a' || key === 'up') { input.jumpPressed = true; input.jumpHeld = true; }
+    if (key === 'b') { if (!input.run) input.firePressed = true; input.run = true; }
+    recompute();
   });
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'a') { if (keyMoveX < 0) keyMoveX = 0; }
-    else if (e.key === 'ArrowRight' || e.key === 'd') { if (keyMoveX > 0) keyMoveX = 0; }
-    else if (e.key === 'ArrowDown' || e.key === 's') input.crouch = false;
-    else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') input.jumpHeld = false;
-    else if (e.key === 'Shift' || e.key === 'x') input.run = false;
+    const key = keymap[e.key];
+    if (!key) return;
+    if (!downKeys.has(e.key)) return;
+    downKeys.delete(e.key);
+    if (held[key] > 0) held[key]--;
+    if (key === 'a' || key === 'up') { if (held.a === 0 && held.up === 0) input.jumpHeld = false; }
+    if (key === 'b' && held.b === 0) input.run = false;
+    recompute();
   });
 }
 
-let keyMoveX = 0;
-
-function onPadDown(e) {
-  e.preventDefault();
-  const now = performance.now();
-  padTouches.set(e.pointerId, {
-    startX: e.clientX,
-    startY: e.clientY,
-    lastX: e.clientX,
-    lastY: e.clientY,
-    lastT: now,
-    samples: [{ y: e.clientY, t: now }],
-    jumped: false,
-  });
-  try { stageEl.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-}
-
-const SWIPE_SAMPLE_WINDOW = 90; // ms — only consider recent motion for velocity
-
-function onPadMove(e) {
-  const t = padTouches.get(e.pointerId);
-  if (!t) return;
-  e.preventDefault();
-  const now = performance.now();
-
-  // Maintain a sliding window of recent y-samples; compute velocity over it.
-  t.samples.push({ y: e.clientY, t: now });
-  while (t.samples.length > 2 && now - t.samples[0].t > SWIPE_SAMPLE_WINDOW) {
-    t.samples.shift();
-  }
-  const first = t.samples[0];
-  const dy = e.clientY - first.y;
-  const dt = (now - first.t) / 1000;
-  if (!t.jumped && dy < 0 && dt > 0) {
-    const vy = dy / dt; // negative = upward
-    if (-vy >= SWIPE_VEL_THRESHOLD && -dy >= SWIPE_DY_MIN) {
-      input.jumpPressed = true;
-      input.jumpHeld = true;
-      t.jumped = true;
-    }
-  }
-  // Re-arm: if the finger goes back down past the start, allow another jump
-  // from a fresh upward flick.
-  if (t.jumped && e.clientY > first.y + 14) {
-    t.jumped = false;
-  }
-
-  t.lastX = e.clientX;
-  t.lastY = e.clientY;
-  t.lastT = now;
-}
-
-function onPadUp(e) {
-  const t = padTouches.get(e.pointerId);
-  if (!t) return;
-  e.preventDefault();
-  padTouches.delete(e.pointerId);
-  const now = performance.now();
-  const dur = now - t.samples[0].t;
-  const totalMove = Math.hypot(e.clientX - t.startX, e.clientY - t.startY);
-  // Tap fallback: a quick tap without significant motion = jump.
-  if (!t.jumped && dur <= TAP_MAX_MS && totalMove <= TAP_MAX_MOVE) {
-    input.jumpPressed = true;
-    input.jumpHeld = true;
-    // Release immediately so jump-cut applies → produces minimum-height hop
-    setTimeout(() => { input.jumpHeld = false; }, 60);
-  } else if (t.jumped) {
-    input.jumpHeld = false;
-  }
-  try { stageEl.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-}
-
-// Called once per frame by the game loop to derive moveX/crouch from the
-// active touches' current positions, and to fold in keyboard.
-export function sampleInput() {
-  let touchMoveX = 0;
-  let crouching = false;
-  let activeTouches = 0;
-  const ph = window.innerHeight || 1;
-  const padBottomThreshold = ph * (1 - CROUCH_BOTTOM_FRAC);
-
-  for (const t of padTouches.values()) {
-    activeTouches++;
-    const dx = t.lastX - t.startX;
-    if (Math.abs(dx) > MOVE_DEADZONE) {
-      const m = Math.max(-1, Math.min(1, (dx > 0 ? dx - MOVE_DEADZONE : dx + MOVE_DEADZONE) / MOVE_MAX));
-      // Use the largest-magnitude finger
-      if (Math.abs(m) > Math.abs(touchMoveX)) touchMoveX = m;
-    }
-    // crouch if a finger is below the threshold and not strongly moving sideways
-    if (t.lastY >= padBottomThreshold && Math.abs(dx) < MOVE_DEADZONE * 2) {
-      crouching = true;
-    }
-  }
-
-  input.moveX = keyMoveX !== 0 ? keyMoveX : touchMoveX;
-  if (!keyMoveX) input.crouch = crouching;
-  // jumpPressed is one-shot; cleared by player after consuming.
-}
+// Game loop calls this once per frame. (We compute eagerly on event, but
+// having this entry point lets the game stay decoupled from event details.)
+export function sampleInput() { /* no-op: recompute() runs on every event */ }
 
 export function consumeJump() {
   const v = input.jumpPressed;
   input.jumpPressed = false;
   return v;
 }
-
 export function consumeFire() {
   const v = input.firePressed;
   input.firePressed = false;

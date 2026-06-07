@@ -4,9 +4,9 @@ import { Game, VIEW_W, VIEW_H } from './game.js';
 import { setupInput } from './input.js';
 import { sfx } from './audio.js';
 
-const canvas      = document.getElementById('stage');
-const actionBtn   = document.getElementById('action-btn');
-const overlay     = document.getElementById('overlay');
+const canvas       = document.getElementById('stage');
+const gameRoot     = document.getElementById('game-root');
+const overlay      = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayBody  = document.getElementById('overlay-body');
 const overlayBtn   = document.getElementById('overlay-btn');
@@ -15,20 +15,35 @@ canvas.width = VIEW_W;
 canvas.height = VIEW_H;
 
 function fitCanvas() {
-  // Scale to fill viewport while preserving aspect ratio.
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const scale = Math.min(vw / VIEW_W, vh / VIEW_H);
-  const w = Math.floor(VIEW_W * scale);
-  const h = Math.floor(VIEW_H * scale);
-  canvas.style.width  = w + 'px';
-  canvas.style.height = h + 'px';
+  // Scale canvas to fit the visible game-root area (the part of the screen
+  // above the controls), preserving aspect ratio.
+  const r = gameRoot.getBoundingClientRect();
+  const scale = Math.max(1, Math.floor(Math.min(r.width / VIEW_W, r.height / VIEW_H)));
+  // Fall back to fractional scale if the integer one is 0 (tiny screens)
+  const useScale = scale * VIEW_W <= r.width && scale * VIEW_H <= r.height
+    ? scale
+    : Math.min(r.width / VIEW_W, r.height / VIEW_H);
+  canvas.style.width  = Math.floor(VIEW_W * useScale) + 'px';
+  canvas.style.height = Math.floor(VIEW_H * useScale) + 'px';
 }
 fitCanvas();
 window.addEventListener('resize', fitCanvas);
-window.addEventListener('orientationchange', fitCanvas);
+window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 100));
+// iOS Safari shows/hides the URL bar dynamically — re-fit when that happens
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitCanvas);
+}
 
-setupInput(canvas, actionBtn);
+setupInput({
+  dpad: {
+    up:    document.querySelector('.dpad-up'),
+    down:  document.querySelector('.dpad-down'),
+    left:  document.querySelector('.dpad-left'),
+    right: document.querySelector('.dpad-right'),
+  },
+  a: document.getElementById('btn-a'),
+  b: document.getElementById('btn-b'),
+});
 
 const hudEls = {
   score: document.getElementById('hud-score'),
@@ -54,11 +69,10 @@ function beginGame(e) {
     game.reset(true);
   }
   game.start();
+  // Hint iOS Safari to collapse the URL bar
+  setTimeout(() => { window.scrollTo(0, 1); fitCanvas(); }, 50);
   setTimeout(() => { starting = false; }, 250);
 }
-// Listen on both the button AND the overlay div, with both pointerup and click,
-// so a tap anywhere on the overlay starts the game regardless of which event
-// the browser delivers first.
 for (const el of [overlayBtn, overlay]) {
   el.addEventListener('click',     beginGame);
   el.addEventListener('pointerup', beginGame);
