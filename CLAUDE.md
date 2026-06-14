@@ -21,6 +21,24 @@ and **deployed to Netlify** via Git auto-deploy.
 
 ---
 
+## Commands
+
+Run from the repo root. Requires **Node 20+** (Vite 8).
+
+| Command           | What it does                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| `npm install`     | Install dependencies. Run once after cloning.                    |
+| `npm run dev`     | Start the Vite dev server with HMR (default <http://localhost:5173>). |
+| `npm run build`   | Production build → `dist/`. This is the Netlify build command.   |
+| `npm run preview` | Serve the built `dist/` locally to sanity-check the production bundle. |
+| `npm run lint`    | Run ESLint over the repo (flat config in `eslint.config.js`).    |
+
+There is **no test runner** configured — this is a static marketing site.
+Verification is the manual `## Pre-deploy checklist`, `npm run lint`, and a
+clean `npm run build`.
+
+---
+
 ## Workflow for a new client
 
 Run these in order. Don't skip steps — the pre-deploy checklist depends on
@@ -292,6 +310,7 @@ Run every item. Don't skip.
 - [ ] **LocalBusiness JSON-LD present.** Open `index.html` and verify a `<script type="application/ld+json">` block exists with `@type: "AssistedLivingFacility"` (preferred) or `"LocalBusiness"` (fallback), populated with the client's name, address, phone, and URL.
 - [ ] **WCAG AA contrast** on all text. Gold on cream (light mode) is the riskiest pair — verify with a contrast checker. If failing, darken the gold or use the espresso color for body text instead.
 - [ ] No console errors in browser dev tools on `npm run dev`.
+- [ ] `npm run lint` passes clean (no errors).
 - [ ] `npm run build` succeeds with no warnings. Review the terminal output, not just the exit code.
 
 ---
@@ -327,6 +346,56 @@ build settings are version-controlled instead of UI-configured:
 - **No router, no state management, no backend, no CMS.**
 - **Don't add frameworks, routing libraries, or backends without discussing with the user first.**
 - If a client needs **multi-page** (e.g. separate pages for each care level, a blog), **SSR/SSG** (for SEO beyond basic meta tags), or a **CMS** (so the client can edit copy themselves), **flag it before starting**. The template will need to be rewritten on a different stack (likely Next.js or Astro) — this is not a small change.
+
+---
+
+## Repository layout
+
+```
+.
+├── CLAUDE.md            ← this file (operational brain)
+├── README.md            ← human-facing browse doc
+├── index.html           ← HTML shell, Google Fonts, {{META_DESCRIPTION}} + <title>
+├── package.json         ← scripts + deps; `name` field = client slug
+├── vite.config.js       ← Vite plugins: @tailwindcss/vite + @vitejs/plugin-react
+├── eslint.config.js     ← ESLint flat config (js + react-hooks + react-refresh)
+├── .gitignore
+├── public/
+│   ├── vite.svg         ← default favicon (replace per client; see index.html <link rel="icon">)
+│   └── images/          ← all site photos + logos; README.md here is authoritative
+└── src/
+    ├── main.jsx         ← React entry; mounts <App/> in StrictMode, imports index.css
+    ├── App.jsx          ← the entire site (all markup, copy placeholders, components)
+    ├── index.css        ← `@import "tailwindcss"` + the only `@custom-variant dark`
+    └── App.css          ← empty; unused (safe to ignore)
+```
+
+Effectively **all the work happens in `src/App.jsx` and `index.html`.**
+
+## Code map: `src/App.jsx`
+
+One file holds the whole page. Top-to-bottom:
+
+- **`App()`** — the default export. Holds all state and renders every section.
+  - State: `scrolled` (nav background on scroll past 40px), `menuOpen` (mobile
+    drawer), `theme` (`'light'`/`'dark'`, initialized from `localStorage`).
+  - Effects: scroll listener, dark-mode class sync + `localStorage` persistence,
+    body-scroll lock while the menu is open, and `Escape`-to-close the menu.
+  - `navLinks` array — the four anchor links (`About`, `Services`, `Our Home` →
+    `#gallery`, `Contact`). Edit here to add/rename nav items.
+  - `services` array — the three service tiers (`01`/`02`/`03`). Add or remove
+    objects here to change the number of tiers.
+- **Sections**, in render order: `NAV` → `MOBILE MENU` → `HERO` → `PILLARS` →
+  `ABOUT` → `SERVICES` → `GALLERY` → `QUOTE BAND` → `CONTACT` → `FOOTER`. Each
+  section carries `id` anchors and `scroll-mt-*` offsets for anchor scrolling.
+- **Helper components** (defined below `App` in the same file): `ThemeToggle`,
+  `Stat` (desktop hero stat), `StatMobile` (mobile hero stat), `Pillar` (the
+  three icon cards), `GalleryImg` (a single gallery tile).
+
+**Dark mode mechanism:** the `theme` state toggles a `.dark` class on
+`<html>`; `src/index.css` defines `@custom-variant dark (&:where(.dark, .dark *))`,
+which is what makes the `dark:` Tailwind variants resolve. There is no
+`tailwind.config.js`.
 
 ---
 
