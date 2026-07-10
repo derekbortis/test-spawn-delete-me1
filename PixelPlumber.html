@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#000000" />
+    <title>Pixel Plumber — Mobile Platformer</title>
+    <style>
+      :root {
+        --dpad-size: 168px;
+        --dpad-arm: 56px;
+        --ab-size: 70px;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100dvh;
+        overflow: hidden;
+        background: #000;
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+        position: fixed;
+        inset: 0;
+      }
+
+      #app {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      #game-root {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        position: relative;
+      }
+
+      canvas#stage {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #5C94FC;
+        touch-action: none;
+      }
+
+      #controls {
+        flex: 0 0 auto;
+        height: 230px;
+        background: linear-gradient(#1c1c1c, #0c0c0c);
+        border-top: 2px solid #2a2a2a;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        box-sizing: border-box;
+      }
+
+      @media (max-height: 640px) {
+        #controls { height: 190px; }
+        :root { --dpad-size: 140px; --dpad-arm: 46px; --ab-size: 60px; }
+      }
+      @media (orientation: landscape) {
+        #controls {
+          height: auto;
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: transparent;
+          border-top: none;
+          padding: 18px 28px;
+          pointer-events: none;
+        }
+        #controls > * { pointer-events: auto; }
+      }
+
+      /* D-pad */
+      #dpad {
+        position: relative;
+        width: var(--dpad-size);
+        height: var(--dpad-size);
+        touch-action: none;
+      }
+      .dpad-btn {
+        position: absolute;
+        width: var(--dpad-arm);
+        height: var(--dpad-arm);
+        background: #2b2b2b;
+        border: 2px solid #555;
+        color: #d0d0d0;
+        font-size: 22px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+        touch-action: none;
+        box-shadow: inset 0 -3px 0 rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.5);
+      }
+      .dpad-btn.pressed {
+        background: #444;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+      }
+      .dpad-up    { top: 0; left: 50%; transform: translateX(-50%); border-radius: 8px 8px 0 0; border-bottom: none; }
+      .dpad-down  { bottom: 0; left: 50%; transform: translateX(-50%); border-radius: 0 0 8px 8px; border-top: none; }
+      .dpad-left  { left: 0; top: 50%; transform: translateY(-50%); border-radius: 8px 0 0 8px; border-right: none; }
+      .dpad-right { right: 0; top: 50%; transform: translateY(-50%); border-radius: 0 8px 8px 0; border-left: none; }
+      .dpad-center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--dpad-arm);
+        height: var(--dpad-arm);
+        transform: translate(-50%, -50%);
+        background: #2b2b2b;
+        pointer-events: none;
+      }
+
+      /* A / B buttons */
+      #ab-buttons {
+        position: relative;
+        width: calc(var(--ab-size) * 2.3);
+        height: calc(var(--ab-size) * 1.8);
+      }
+      .ab-btn {
+        position: absolute;
+        width: var(--ab-size);
+        height: var(--ab-size);
+        border-radius: 50%;
+        border: 3px solid rgba(255,255,255,0.25);
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+        font-family: "Courier New", monospace;
+        text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+        padding: 0;
+        margin: 0;
+        touch-action: none;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.45), inset 0 -3px 0 rgba(0,0,0,0.25);
+      }
+      .ab-btn.pressed {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 rgba(0,0,0,0.45), inset 0 -2px 0 rgba(0,0,0,0.25);
+      }
+      #btn-a {
+        right: 0;
+        bottom: 14px;
+        background: radial-gradient(circle at 35% 30%, #ff8268, #c22a2a);
+      }
+      #btn-b {
+        left: 0;
+        top: 14px;
+        background: radial-gradient(circle at 35% 30%, #ffdf52, #c08a14);
+        color: #2a1208;
+      }
+
+      /* HUD */
+      #hud {
+        position: absolute;
+        top: env(safe-area-inset-top, 8px);
+        left: 0;
+        right: 0;
+        padding: 6px 10px;
+        display: flex;
+        justify-content: space-between;
+        font-family: "Courier New", monospace;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 1px;
+        color: #fff;
+        text-shadow: 2px 2px 0 #000;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #hud .group { display: flex; gap: 10px; }
+
+      /* Overlay */
+      #overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.82);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        text-align: center;
+        padding: 24px;
+        z-index: 30;
+        font-family: "Courier New", monospace;
+      }
+      #overlay h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 2px;
+        color: #FFD23F;
+        text-shadow: 3px 3px 0 #000;
+      }
+      #overlay p { margin: 0; max-width: 320px; line-height: 1.5; font-size: 14px; }
+      #overlay button {
+        margin-top: 10px;
+        padding: 14px 32px;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: 2px;
+        background: #FFD23F;
+        color: #1a1208;
+        border: none;
+        border-radius: 6px;
+        box-shadow: 0 4px 0 #b88c1d;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      #overlay.hidden { display: none; }
+    </style>
+</head>
+  <body>
+    <div id="app">
+      <div id="game-root">
+        <canvas id="stage"></canvas>
+        <div id="hud">
+          <div class="group">
+            <span id="hud-score">SCORE 000000</span>
+            <span id="hud-coins">x00</span>
+          </div>
+          <div class="group">
+            <span id="hud-lives">LIVES 3</span>
+            <span id="hud-time">TIME 300</span>
+          </div>
+        </div>
+      </div>
+      <div id="controls">
+        <div id="dpad">
+          <button class="dpad-btn dpad-up"    data-dir="up"    aria-label="Up">▲</button>
+          <button class="dpad-btn dpad-left"  data-dir="left"  aria-label="Left">◀</button>
+          <div class="dpad-center"></div>
+          <button class="dpad-btn dpad-right" data-dir="right" aria-label="Right">▶</button>
+          <button class="dpad-btn dpad-down"  data-dir="down"  aria-label="Down">▼</button>
+        </div>
+        <div id="ab-buttons">
+          <button id="btn-b" class="ab-btn" aria-label="B — run / fire">B</button>
+          <button id="btn-a" class="ab-btn" aria-label="A — jump">A</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="overlay">
+      <h1 id="overlay-title">PIXEL PLUMBER</h1>
+      <p id="overlay-body">D-pad to walk · A to jump · B to run (and throw fireballs when powered up) · Down to crouch.</p>
+      <button id="overlay-btn" type="button">START</button>
+    </div>
+      <script >(function(){let e=document.createElement(`link`).relList;if(e&&e.supports&&e.supports(`modulepreload`))return;for(let e of document.querySelectorAll(`link[rel="modulepreload"]`))n(e);new MutationObserver(e=>{for(let t of e)if(t.type===`childList`)for(let e of t.addedNodes)e.tagName===`LINK`&&e.rel===`modulepreload`&&n(e)}).observe(document,{childList:!0,subtree:!0});function t(e){let t={};return e.integrity&&(t.integrity=e.integrity),e.referrerPolicy&&(t.referrerPolicy=e.referrerPolicy),e.crossOrigin===`use-credentials`?t.credentials=`include`:e.crossOrigin===`anonymous`?t.credentials=`omit`:t.credentials=`same-origin`,t}function n(e){if(e.ep)return;e.ep=!0;let n=t(e);fetch(e.href,n)}})();var e={".":null,K:`#000000`,W:`#ffffff`,R:`#d42c2c`,r:`#a01818`,S:`#f7c79b`,s:`#c98e62`,B:`#1c4ad8`,b:`#0e2a85`,N:`#5b3a1e`,n:`#3a230f`,G:`#FFD23F`,g:`#c89a1f`,O:`#c4731d`,o:`#8a4b10`,E:`#e9a55b`,P:`#37b34a`,p:`#0f7a26`,H:`#7cf07a`,M:`#b06a2a`,m:`#6e3a13`,L:`#42c14d`,l:`#1e7a2a`,Y:`#f9e36b`,y:`#b88a1d`,C:`#ffffff`,c:`#dfe8ff`,Q:`#36a020`,q:`#1d6a13`,F:`#ff4848`,f:`#a01010`,X:`#ff8c2a`,x:`#ffd05c`,J:`#9fb3c4`,j:`#5c6b78`};function t(t,n=1){let r=t.length,i=t[0].length,a=document.createElement(`canvas`);a.width=i*n,a.height=r*n;let o=a.getContext(`2d`);o.imageSmoothingEnabled=!1;for(let a=0;a<r;a++)for(let r=0;r<i;r++){let i=e[t[a][r]];i&&(o.fillStyle=i,o.fillRect(r*n,a*n,n,n))}return a}function n(e){let t=document.createElement(`canvas`);t.width=e.width,t.height=e.height;let n=t.getContext(`2d`);return n.imageSmoothingEnabled=!1,n.translate(e.width,0),n.scale(-1,1),n.drawImage(e,0,0),t}var r=[`...KKKK.........`,`..KRRRRR........`,`..KRRRRR........`,`..KKSSsSKK......`,`..SKSKSSSK......`,`..SKSSKSSSK.....`,`..SSKSSSSK......`,`...SSSSSK.......`,`....KKKK........`,`..KKBNBKK.......`,`.KKBKBBKBK......`,`KKBBKBBKBBKK....`,`NNBBKKKKBBNN....`,`NNNBBBBBBNNN....`,`.KKKBBBBKKK.....`,`KKKKK..KKKKK....`],i=[`....KKKK........`,`...KRRRRR.......`,`...KRRRRR.......`,`...KKSSsSKK.....`,`...SKSKSSSK.....`,`...SKSSKSSSK....`,`...SSKSSSSK.....`,`...KSSSSK.......`,`..KKBKKKKK......`,`.KBBBNNBBBK.....`,`KBNBBNNBBNBK....`,`KBBNBBBBNBBK....`,`KKBNNBBNNBKK....`,`...KKKKKK.......`,`..KKKK.KKKK.....`,`.NNN....NNN.....`],a=[`....KKKK........`,`...KRRRRR.......`,`...KRRRRR.......`,`...KKSSsSKK.....`,`...SKSKSSSK.....`,`...SKSSKSSSK....`,`...SSKSSSSK.....`,`..KKSSSSKK......`,`.KBKBBBBKBK.....`,`KBBKBBBBKBBK....`,`KBBBBKKBBBBK....`,`NNBKKKKKKBNN....`,`.NNKKKKKKNN.....`,`...KKKKKK.......`,`..NNN..NNN......`,`.NNN....NNN.....`],o=[`................`,`................`,`................`,`................`,`....KKKK........`,`...KRRRRR.......`,`...KRRRRR.......`,`..KKSSsSKK......`,`..SKSKSSSK......`,`..SKSSKSSSK.....`,`..SSKSSSSK......`,`.KKBBBBBBKK.....`,`KBBBBBBBBBBK....`,`KKBBKKKKBBKK....`,`.KKKKBBKKKK.....`,`.NNNN..NNNN.....`],s=`....KKKKKK......,...KRRRRRRR.....,...KRRRRRRR.....,...KKSSsSsSKK...,..SKSKSSSSSSK...,..SKSSKSSSSSK...,..SSKSSSSSSK....,...KSSSSSSK.....,....KKKKKK......,...KBBKKBBK.....,..KBBBBKBBBBK...,.KBBBKKBBBKBBK..,KBBKKBBBBKKBBK..,KBKBBBBBBBBKBK..,KKBBBBBBBBBBKK..,.KKBBKKKKBBKK...,..KKBBBBBBKK....,..KBBBBBBBBK....,..KBBBNNBBBK....,.KBBNNBBNNBBK...,KBBKNNBBNNKBBK..,KBBKNNBBNNKBBK..,KKBBNNNNNNBBKK..,.KKNNNNNNNNKK...,..KNNNN..NNNK...,..KNNNN..NNNK...,.KNNNN....NNNK..,.KNNNN....NNNK..,KKNNNN....NNNKK.,KKKKKK....KKKKK.,................,................`.split(`,`),c=`.....KKKKKK.....,....KRRRRRRR....,....KRRRRRRR....,....KKSSsSsSKK..,...SKSKSSSSSSK..,...SKSSKSSSSSK..,...SSKSSSSSSK...,....KSSSSSSK....,.....KKKKKK.....,...KKBBKKBBKK...,..KBBBBKBBBBBK..,.KBBBKKBBBKBBBK.,KBBKKBBBBKKBBBK.,KBKBBBBBBBBKBBK.,KKBBBBBBBBBBKK..,.KKBBKKKKBBKK...,..KKBBBBBBKK....,..KBBBBBBBBK....,..KBBNNNNBBK....,.KBNNBBBBNNBK...,KBNNBBBBBBNNBK..,KBKBBBBBBBBKBK..,.KKBBBBBBBBKK...,..KKBBBBBBKK....,..KKNNNNNNKK....,.KNNN....NNNK...,KNNN......NNNK..,KNN........NNK..,.KK........KK...,................,................,................`.split(`,`),l=`....KKKKKK......,...KRRRRRRR.....,...KRRRRRRR.....,...KKSSsSsSKK...,..SKSKSSSSSSK...,..SKSSKSSSSSK...,..SSKSSSSSSK....,...KSSSSSSK.....,..KKBBKKBBKK....,.KBBBBBBBBBBK...,KBBBNNNNNNBBBK..,KBBNNBBBBNNBBK..,KBBNBBBBBBNBBK..,KKBBBBBBBBBBKK..,.KKBBKKKKBBKK...,..KKBBBBBBKK....,..KBBBBBBBBK....,..KBBBBBBBBK....,..KBBBNNBBBK....,.KBBNNBBNNBBK...,KBKKNNBBNNKKBK..,KBKKNNBBNNKKBK..,KKBBNNNNNNBBKK..,.KKNNNNNNNNKK...,..KNNNN..NNNK...,.KNNNNN..NNNNK..,.KNNNN....NNNK..,KNNNNN....NNNNK.,KNNNNN....NNNNK.,KKNNN......NNKK.,.KKK........KKK.,................`.split(`,`),u=`................,................,................,................,................,................,....KKKKKK......,...KRRRRRRR.....,...KRRRRRRR.....,...KKSSsSsSKK...,..SKSKSSSSSSK...,..SKSSKSSSSSK...,..SSKSSSSSSK....,...KSSSSSSK.....,.KKBBKKKKBBKK...,KBBBBBBBBBBBBK..,KBBBNNNNNNBBBK..,KBNNBBBBBBNNBK..,KBNBBBBBBBBNBK..,KKBBBBBBBBBBKK..,.KKKBBBBBBKKK...,..KKBBBBBBKK....,..KBBBNNBBBK....,.KBBNNBBNNBBK...,KBKKNNBBNNKKBK..,KKKNNNNNNNNKKK..,.NNNN....NNNN...,.NNNN....NNNN...,KKKKK....KKKKK..,................,................,................`.split(`,`),d=[`....MMMMMM......`,`...MMmmmmMM.....`,`..MmmKmmKmmM....`,`..MmmWKmWKmM....`,`..MmmWWmWWmM....`,`..MmmmmKmmmM....`,`...MmmmmmmM.....`,`....MMmmMM......`,`..nnNNnnNNnn....`,`.nNNNnnnnNNNn...`,`nnnnKKKKKKnnnn..`,`..KKKKKKKKKK....`,`.NNNK....KNNN...`,`.NNN......NNN...`,`................`,`................`],f=[`....MMMMMM......`,`...MMmmmmMM.....`,`..MmmKmmKmmM....`,`..MmmWKmWKmM....`,`..MmmWWmWWmM....`,`..MmmmmKmmmM....`,`...MmmmmmmM.....`,`....MMmmMM......`,`...NNnnnnNN.....`,`..NNNnnnnNNN....`,`..nnKKKKKKnn....`,`.NNKKKKKKKKNN...`,`NN..K....K..NN..`,`N....NN..N...N..`,`................`,`................`],p=[`................`,`................`,`................`,`................`,`................`,`................`,`....MMMMMM......`,`...MMmmmmMM.....`,`..MmmKmmKmmM....`,`..MmmWKmWKmM....`,`..MmmmmKmmmM....`,`..MmmmmmmmmM....`,`...MMMmmMMM.....`,`.NNNNNNNNNNNN...`,`................`,`................`],ee=[`................`,`.....YYYYY......`,`....YYYYYYY.....`,`....YKKWWKWY....`,`....YKWKWWKY....`,`....YKWWWWKY....`,`.....YKKKKY.....`,`....YYYYY.......`,`..LLLLLLLLLL....`,`.LllLLLLLLLLL...`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLlLLL..`,`LLLLLLLLLLLlLL..`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLLLLL..`,`.LLLLLLLLLLLL...`,`..LLLLLLLLLL....`,`...LLLLLLLL.....`,`....KKKKKK......`,`...KK....KK.....`,`...K......K.....`,`..NN......NN....`,`..NNN....NNN....`,`..NN......NN....`],m=[`................`,`.....YYYYY......`,`....YYYYYYY.....`,`....YKKWWKWY....`,`....YKWKWWKY....`,`....YKWWWWKY....`,`.....YKKKKY.....`,`....YYYYY.......`,`..LLLLLLLLLL....`,`.LllLLLLLLLLL...`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLlLLL..`,`LLLLLLLLLLLlLL..`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLLLLL..`,`.LLLLLLLLLLLL...`,`..LLLLLLLLLL....`,`...LLLLLLLL.....`,`...KK....KK.....`,`..KK......KK....`,`.NN........NN...`,`.NNN......NNN...`,`.NN........NN...`,`................`],h=[`................`,`................`,`................`,`................`,`....YYYYYY......`,`...YYYYYYYY.....`,`..LLLLLLLLLL....`,`.LllLLLLLLLLL...`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLlLLL..`,`LLLLLLLLLLLlLL..`,`LLLLLlllLLLLLL..`,`LLLLLLLLLLLLLL..`,`.LLLLLLLLLLLL...`,`..LLLLLLLLLL....`,`...YYYYYYYY.....`],te=[`OOOOOOOOOOOOOOOO`,`OoEoooEoooEoooEo`,`oOoOOOOoOOOOOoOO`,`OOoOOoOOoOOoOOoO`,`OoOOOOOoOOOOOOoO`,`oOOoOOOOOoOOOOOO`,`OOoOOoOOOOOOoOOO`,`OoOOOOOoOOOOoOoO`,`OOOOoOOOoOOoOOOO`,`OoOoOOOOoOOOOOoO`,`OOoOOOOoOOOoOOOo`,`oOOOoOOOoOOOOOOO`,`OoOOOOOoOOOOoOOO`,`OOoOOOOOoOOOOoOO`,`OoOOoOOoOOoOoOOo`,`oOOOoOOoOOoOOOoO`],g=[`OOOOOOOOOOOOOOOO`,`OEEEEEEEEEEEEEEO`,`OEEOOOOOEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OOOOOOOOOOOOOOOO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEOOOOEEEO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OOOOOOOOOOOOOOOO`,`OEEEEEEEEEEEEEEO`,`OEEEEEEEEEEEEEEO`,`OOOOOOOOOOOOOOOO`],_=[`KKKKKKKKKKKKKKKK`,`KGGGGGGGGGGGGGGK`,`KGGGGgggggGGGGGK`,`KGGgggKKKgggGGGK`,`KGGggKKKKKggGGGK`,`KGGgKK..KKgGGGGK`,`KGGGGG..KKgGGGGK`,`KGGGGgKKKgGGGGGK`,`KGGGGgKKgGGGGGGK`,`KGGGGgKKgGGGGGGK`,`KGGGGGGGGGGGGGGK`,`KGGGGgKKgGGGGGGK`,`KGGGGGKKGGGGGGGK`,`KGGGGGGGGGGGGGGK`,`KGGGGGGGGGGGGGGK`,`KKKKKKKKKKKKKKKK`],ne=[`KKKKKKKKKKKKKKKK`,`KooooooooooooooK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KoEEEEEEEEEEEEoK`,`KooooooooooooooK`,`KKKKKKKKKKKKKKKK`],re=[`pppppppppppppppp`,`pPPPPPPPPPPPPPPp`,`pPHHHHHHHHHHHHPp`,`pPHPPPPPPPPPPPPp`,`pPHPpppppppppppp`,`pPHPpPPPPPPPPPPP`,`pPHPpPHHHHHHHHHH`,`pPHPpPHPPPPPPPPP`,`pPHPpPHPpppppppp`,`pPHPpPHPpPPPPPPP`,`pPHPpPHPpPHHHHHH`,`pPHPpPHPpPHPPPPP`,`pPHPpPHPpPHPpppp`,`pPHPpPHPpPHPpPPP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`],ie=[`pppppppppppppppp`,`pPPPPPPPPPPPPPPp`,`pPPPPPPPPPPPPPPp`,`pPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`],ae=[`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`,`pPHPpPHPpPHPpPHP`],oe=[`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`,`PPPPPPPPPPPPPPPp`,`HHHHHHHHHHHHHHPp`,`PPPPPPPPPPPPPPPp`,`pppppppppppppppp`],se=[`................`,`................`,`................`,`................`,`................`,`................`,`................`,`...........QQQQQ`,`..........QQQQQQ`,`.........QQQqQQQ`,`........QQQQQQQQ`,`.......QQQQQqQQQ`,`......QQQqQQQQQQ`,`.....QQQQQQQQQQQ`,`....QQQQQQQQQQQQ`,`...QQQQQQQQQQQQQ`],v=[`.......CCCC.....`,`....CCCCCCCCC...`,`..CCCCCCCCCCCCC.`,`.CCCCcCCCCCCCCCC`,`.CCCCCCCCCCCCCCC`,`..CCCCCCCCCCCCC.`,`...CCCCCCCCCCC..`,`......CCCCC.....`],ce=[`......GGGG......`,`....GGggggGG....`,`...GGgGGGGgGG...`,`..GGgGGggGGgGG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GgGGggGGGGgG..`,`..GGgGGggGGgGG..`,`...GGgGGGGgGG...`,`....GGggggGG....`,`......GGGG......`],y=[`.......GGG......`,`......GGgGG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GgGgG.....`,`......GGgGG.....`,`.......GGG......`],le=[`...KKKKKKKKKK...`,`..KFFFFFFFFFFK..`,`.KFFWWFFFFWWFFK.`,`KFWWWWFFFFWWWWFK`,`KFWWWWFFFFWWWWFK`,`KFFFFFWWWWFFFFFK`,`KFFFWWWWWWWWFFFK`,`KFFWWWWWWWWWWFFK`,`.KKWWWWWWWWWWKK.`,`...KSSSSSSSSK...`,`..KSSKSSSSKSSK..`,`..KSSKWWWWKSSK..`,`..KSSKWWWWKSSK..`,`..KSSKKKKKKSSK..`,`...KSSSSSSSSK...`,`....KKKKKKKK....`],ue=[`.....KKKKKK.....`,`....KFFFFFFK....`,`...KFFKKKKFFK...`,`..KFFKxxxxKFFK..`,`.KFFKxxxxxxKFFK.`,`.KFFKxxKKxxKFFK.`,`.KFFKxKxxKxKFFK.`,`.KFFKxxKKxxKFFK.`,`.KFFKxxxxxxKFFK.`,`..KFFKxxxxKFFK..`,`...KFFKKKKFFK...`,`....KGGGGGGK....`,`....KQqQqQqK....`,`....KqQqQqQK....`,`....KQqQqQqK....`,`.....KKKKKK.....`],de=[`..XX..`,`.XxxX.`,`XxxxxX`,`XxxxxX`,`.XxxX.`,`..XX..`],fe=[`.......QQ.......`,`......QQQQ......`,`.....QQqQQQ.....`,`....QQqqQqQQ....`,`.....QQQQQQ.....`,`......QQQQ......`,`.......JJ.......`,`.......JJ.......`],pe=[`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`,`.......JJ.......`],me=[`...........`,`.QQQQQQQ...`,`.QQQQQQQQ..`,`.QQQQQQQQQ.`,`.QQQQQQQQQQ`,`.QQQQQQQQQ.`,`.QQQQQQQQ..`,`.QQQQQQQ...`],b={},x=!1;function he(){x||(x=!0,b.playerSmallIdle=t(r),b.playerSmallRun=t(i),b.playerSmallJump=t(a),b.playerSmallCrouch=t(o),b.playerBigIdle=t(s),b.playerBigRun=t(c),b.playerBigJump=t(l),b.playerBigCrouch=t(u),b.playerSmallIdleL=n(b.playerSmallIdle),b.playerSmallRunL=n(b.playerSmallRun),b.playerSmallJumpL=n(b.playerSmallJump),b.playerSmallCrouchL=n(b.playerSmallCrouch),b.playerBigIdleL=n(b.playerBigIdle),b.playerBigRunL=n(b.playerBigRun),b.playerBigJumpL=n(b.playerBigJump),b.playerBigCrouchL=n(b.playerBigCrouch),b.goombaA=t(d),b.goombaB=t(f),b.goombaSquish=t(p),b.koopaA=t(ee),b.koopaB=t(m),b.koopaShell=t(h),b.tileGround=t(te),b.tileBrick=t(g),b.tileQuestion=t(_),b.tileQuestionUsed=t(ne),b.tilePipeTopL=t(re),b.tilePipeTopR=t(ie),b.tilePipeBodyL=t(ae),b.tilePipeBodyR=t(oe),b.hill=t(se,1),b.cloud=t(v,1),b.coinA=t(ce),b.coinB=t(y),b.mushroom=t(le),b.flower=t(ue),b.fireball=t(de),b.flagTop=t(fe),b.flagPole=t(pe),b.flagCloth=t(me))}var S={gravity:1500,fallGravity:2e3,cutGravity:2800,maxFall:480,walkAccel:900,runAccel:1200,airAccel:700,friction:850,turnFriction:1500,walkMax:120,runMax:200,jumpV:-420,runJumpBoost:-40,coyoteTime:.1,jumpBuffer:.12,enemySpeed:40,shellSpeed:300,fireballSpeed:260,fireballGravity:1800,fireballBounce:-300};function C(e,t,n,r,i){let a=!1,o=!1;if(e.x+=n,n!==0){let r=n>0?1:-1,o=r>0?e.x+e.w:e.x,s=Math.floor(o/16),c=Math.floor(e.y/16),l=Math.floor((e.y+e.h-.001)/16);for(let n=c;n<=l;n++)if(t.solidAt(s,n)){a=!0,r>0?e.x=s*16-e.w:e.x=(s+1)*16,e.vx=0,i&&i.push({tx:s,ty:n,axis:`x`,dir:r});break}}if(e.y+=r,r!==0){let n=r>0?1:-1,a=n>0?e.y+e.h:e.y,s=Math.floor(a/16),c=Math.floor(e.x/16),l=Math.floor((e.x+e.w-.001)/16);for(let r=c;r<=l;r++)if(t.solidAt(r,s)){o=!0,n>0?e.y=s*16-e.h:e.y=(s+1)*16,e.vy=0,i&&i.push({tx:r,ty:s,axis:`y`,dir:n});break}}return{hitX:a,hitY:o}}function w(e,t){return e.x<t.x+t.w&&e.x+e.w>t.x&&e.y<t.y+t.h&&e.y+e.h>t.y}var T=[`..............................................................................................................................................................................................................`,`..............................................................................................................................................................................................................`,`..............................................................................................................................................................................................................`,`..............................................................................................................................................................................................................`,`..............................................................................................................................................................................................................`,`...................c.....................................c.c.c...............cccc..........................................................................................................................F..`,`...........cBcBcB......B?BcB?B.................c.c..B...........BB..B.....cc........cccc...c.c..B?B...........c..c..c..c..............................c..c..............c.c....c.c.....cccccc.................|..`,`....................................................................[]..................................B?B..............B..B..B..B...B...........................................................c.........|..`,`...............................................................[]..()...........[]......................................................................................c.cccc..............cc..............|..`,`............c..g.....g.g..............k............[]...g.......()..()....g.......()........g..g..k.........g..g...........g..g..g..g....k.....g.g.g........g.....g..g....................g.g...g.g.g.........|..`,`GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG`,`GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG..GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG`],ge=[0,1],_e=class{constructor(){this.h=T.length,this.w=Math.max(...T.map(e=>e.length)),this.tiles=Array(this.h*this.w).fill(`.`),this.enemySpawns=[],this.coinSpawns=[],this.powerupQuestions=new Set;let e=0;for(let t=0;t<this.h;t++){let n=T[t];for(let r=0;r<this.w;r++){let i=n[r]||`.`;i===`g`?(this.enemySpawns.push({type:`goomba`,x:r,y:t}),this.tiles[t*this.w+r]=`.`):i===`k`?(this.enemySpawns.push({type:`koopa`,x:r,y:t}),this.tiles[t*this.w+r]=`.`):i===`c`?(this.coinSpawns.push({x:r,y:t}),this.tiles[t*this.w+r]=`.`):this.tiles[t*this.w+r]=i,i===`?`&&(ge.includes(e)&&this.powerupQuestions.add(t*this.w+r),e++)}}this.pixelW=this.w*16,this.pixelH=this.h*16;for(let e=0;e<this.h;e++)for(let t=0;t<this.w;t++)if(this.at(t,e)===`F`){this.flagpoleX=t*16,this.flagpoleTopY=e*16;break}}at(e,t){return e<0||t<0||e>=this.w||t>=this.h?`.`:this.tiles[t*this.w+e]}set(e,t,n){e<0||t<0||e>=this.w||t>=this.h||(this.tiles[t*this.w+e]=n)}solidAt(e,t){if(t>=this.h)return!1;let n=this.at(e,t);return n===`G`||n===`B`||n===`?`||n===`U`||n===`[`||n===`]`||n===`(`||n===`)`}isQuestion(e,t){return this.at(e,t)===`?`}isBreakable(e,t){return this.at(e,t)===`B`}isPowerupQuestion(e,t){return this.powerupQuestions.has(t*this.w+e)}consumePowerupQuestion(e,t){this.powerupQuestions.delete(t*this.w+e)}render(e,t,n,r,i,a){let o=Math.max(0,Math.floor(t/16)),s=Math.min(this.w-1,Math.ceil((t+r)/16)),c=Math.max(0,Math.floor(n/16)),l=Math.min(this.h-1,Math.ceil((n+i)/16));for(let r=c;r<=l;r++)for(let i=o;i<=s;i++){let a=this.tiles[r*this.w+i],o=null;switch(a){case`G`:o=b.tileGround;break;case`B`:o=b.tileBrick;break;case`?`:o=b.tileQuestion;break;case`U`:o=b.tileQuestionUsed;break;case`[`:o=b.tilePipeTopL;break;case`]`:o=b.tilePipeTopR;break;case`(`:o=b.tilePipeBodyL;break;case`)`:o=b.tilePipeBodyR;break;case`F`:case`|`:o=b.flagPole;break;default:continue}o&&e.drawImage(o,Math.floor(i*16-t),Math.floor(r*16-n))}if(this.flagpoleX!=null){let r=Math.floor(this.flagpoleX-t),i=Math.floor(this.flagpoleTopY-n);e.drawImage(b.flagTop,r,i-8)}}},ve=class{constructor(e,t){this.viewW=e,this.viewH=t,this.x=0,this.y=0,this.maxX=0}setBounds(e,t){this.levelW=e,this.levelH=t}follow(e){let t=e.x+e.w/2-this.viewW*.4;t>this.x&&(this.x=t),this.x<0&&(this.x=0),this.x>this.levelW-this.viewW&&(this.x=this.levelW-this.viewW),this.y=this.levelH-this.viewH}},E={moveX:0,jumpPressed:!1,jumpHeld:!1,crouch:!1,run:!1,firePressed:!1},D={left:0,right:0,down:0,up:0,a:0,b:0};function O(){let e=D.left>0,t=D.right>0;E.moveX=e&&!t?-1:t&&!e?1:0,E.crouch=D.down>0}function k(e,t,n={}){if(!e)return;let r=null,i=i=>{i&&i.cancelable&&i.preventDefault(),!(r!==null&&i&&i.pointerId!==r)&&(i&&`pointerId`in i&&(r=i.pointerId),D[t]===0&&n.onPress?.(),D[t]++,e.classList.add(`pressed`),O())},a=i=>{i&&i.cancelable&&i.preventDefault(),!(i&&`pointerId`in i&&r!==null&&i.pointerId!==r)&&(r=null,D[t]>0&&D[t]--,D[t]===0&&(e.classList.remove(`pressed`),n.onRelease?.()),O())};e.addEventListener(`pointerdown`,i,{passive:!1}),e.addEventListener(`pointerup`,a,{passive:!1}),e.addEventListener(`pointercancel`,a,{passive:!1}),e.addEventListener(`pointerleave`,a,{passive:!1}),e.addEventListener(`contextmenu`,e=>e.preventDefault())}function A(e){let t=e=>e.preventDefault();document.addEventListener(`gesturestart`,t,{passive:!1}),document.addEventListener(`gesturechange`,t,{passive:!1}),document.addEventListener(`gestureend`,t,{passive:!1}),document.addEventListener(`contextmenu`,t),k(e.dpad.left,`left`),k(e.dpad.right,`right`),k(e.dpad.down,`down`),k(e.dpad.up,`up`,{onPress:()=>{E.jumpPressed=!0,E.jumpHeld=!0},onRelease:()=>{E.jumpHeld=!1}}),k(e.a,`a`,{onPress:()=>{E.jumpPressed=!0,E.jumpHeld=!0},onRelease:()=>{E.jumpHeld=!1}}),k(e.b,`b`,{onPress:()=>{E.run||(E.firePressed=!0),E.run=!0},onRelease:()=>{E.run=!1}});let n={ArrowLeft:`left`,a:`left`,ArrowRight:`right`,d:`right`,ArrowDown:`down`,s:`down`,ArrowUp:`up`,w:`up`," ":`a`,z:`a`,x:`b`,Shift:`b`},r=new Set;window.addEventListener(`keydown`,e=>{let t=n[e.key];t&&(e.repeat||r.has(e.key)||(r.add(e.key),D[t]++,(t===`a`||t===`up`)&&(E.jumpPressed=!0,E.jumpHeld=!0),t===`b`&&(E.run||(E.firePressed=!0),E.run=!0),O()))}),window.addEventListener(`keyup`,e=>{let t=n[e.key];t&&r.has(e.key)&&(r.delete(e.key),D[t]>0&&D[t]--,(t===`a`||t===`up`)&&D.a===0&&D.up===0&&(E.jumpHeld=!1),t===`b`&&D.b===0&&(E.run=!1),O())})}function j(){let e=E.jumpPressed;return E.jumpPressed=!1,e}function M(){let e=E.firePressed;return E.firePressed=!1,e}var N={SMALL:`small`,BIG:`big`,FIRE:`fire`},P=class{constructor(e,t){this.x=e,this.y=t,this.vx=0,this.vy=0,this.facing=1,this.onGround=!1,this.lastGroundT=0,this.jumpBufferT=0,this.holdingJump=!1,this.crouching=!1,this.state=N.SMALL,this.animT=0,this.frame=0,this.invuln=0,this.starT=0,this.dead=!1,this.win=!1,this.winT=0,this.firedRecently=0,this.updateHitbox()}isBig(){return this.state!==N.SMALL}isFire(){return this.state===N.FIRE}updateHitbox(){this.w=12,this.isBig()&&!this.crouching?this.h=28:this.h=14}takeDamage(){this.invuln>0||this.dead||this.win||(this.state===N.SMALL?(this.dead=!0,this.vy=-360,this.vx=0):this.state===N.FIRE?(this.state=N.BIG,this.invuln=1.5):(this.state=N.SMALL,this.invuln=1.5),this.updateHitbox())}powerUp(e){e===`mushroom`&&this.state===N.SMALL?(this.y-=14,this.state=N.BIG):e===`flower`&&(this.state===N.SMALL&&(this.y-=14),this.state=N.FIRE),this.updateHitbox()}update(e,t,n){if(this.dead){this.vy+=S.gravity*e,this.y+=this.vy*e;return}if(this.win){this.winT+=e,this.winT<1.2?this.y=Math.min(this.y+120*e,t.pixelH-32-this.h):(this.x+=60*e,this.vy+=S.gravity*e,this.y+=this.vy*e);return}let r=E.run,i=r?S.runMax:S.walkMax,a=this.onGround?r?S.runAccel:S.walkAccel:S.airAccel,o=E.moveX;if(Math.abs(o)>.05){let t=o*i,n=this.vx>0&&t<0||this.vx<0&&t>0?S.turnFriction+a:a;this.vx<t?this.vx=Math.min(t,this.vx+n*e):this.vx>t&&(this.vx=Math.max(t,this.vx-n*e)),this.facing=o>0?1:-1}else if(this.onGround){let t=S.friction*e;this.vx>0?this.vx=Math.max(0,this.vx-t):this.vx<0&&(this.vx=Math.min(0,this.vx+t))}let s=E.crouch&&this.isBig()&&this.onGround;if(s!==this.crouching){this.crouching=s;let e=this.h;this.updateHitbox(),this.crouching?this.y+=e-this.h:this.y-=this.h-e}j()&&(this.jumpBufferT=S.jumpBuffer,this.holdingJump=!0),E.jumpHeld||(this.holdingJump=!1);let c=n.tNow-this.lastGroundT<=S.coyoteTime;if(this.jumpBufferT>0&&(this.onGround||c)){let e=Math.min(1,Math.abs(this.vx)/S.runMax);this.vy=S.jumpV+e*S.runJumpBoost,this.onGround=!1,this.lastGroundT=-1,this.jumpBufferT=0,n.onJump?.()}this.jumpBufferT>0&&(this.jumpBufferT-=e);let l=S.gravity;this.vy<0&&!this.holdingJump?l=S.cutGravity:this.vy>0&&(l=S.fallGravity),this.vy=Math.min(S.maxFall,this.vy+l*e),this.isFire()&&M()&&this.firedRecently<=0&&(n.spawnFireball(this),this.firedRecently=.35),this.firedRecently>0&&(this.firedRecently-=e);let u=this.vx*e,d=this.vy*e,f=this.onGround,p=[],{hitY:ee}=C(this,t,u,d,p),m=!1;for(let e of p)e.axis===`y`&&e.dir<0?n.bumpTile(e.tx,e.ty,this):e.axis===`y`&&e.dir>0&&(m=!0);this.onGround=m,m&&(this.lastGroundT=n.tNow),f&&!m&&this.vy>=0&&(this.lastGroundT=n.tNow),this.x<0&&(this.x=0,this.vx=0),this.y>t.pixelH+64&&(this.dead=!0),this.invuln>0&&(this.invuln-=e),this.animT+=e;let h=Math.abs(this.vx)>8?.18-Math.min(.12,Math.abs(this.vx)/2e3):.25;this.animT>h&&(this.animT=0,this.frame=this.frame+1&1)}render(e,t,n){if(this.invuln>0&&Math.floor(this.invuln*16)%2==0)return;let r=this.isBig(),i=this.facing<0,a;a=this.dead?r?i?b.playerBigJumpL:b.playerBigJump:i?b.playerSmallJumpL:b.playerSmallJump:this.crouching?r?i?b.playerBigCrouchL:b.playerBigCrouch:i?b.playerSmallCrouchL:b.playerSmallCrouch:this.onGround?Math.abs(this.vx)>8&&this.frame===0?r?i?b.playerBigRunL:b.playerBigRun:i?b.playerSmallRunL:b.playerSmallRun:r?i?b.playerBigIdleL:b.playerBigIdle:i?b.playerSmallIdleL:b.playerSmallIdle:r?i?b.playerBigJumpL:b.playerBigJump:i?b.playerSmallJumpL:b.playerSmallJump,this.isFire()?(e.drawImage(a,Math.floor(this.x-t-2),Math.floor(this.y-n)),e.globalCompositeOperation=`source-atop`,e.fillStyle=`rgba(255,220,120,0.18)`,e.fillRect(Math.floor(this.x-t-2),Math.floor(this.y-n),16,r?32:16),e.globalCompositeOperation=`source-over`):e.drawImage(a,Math.floor(this.x-t-2),Math.floor(this.y-n))}},F=class{constructor(e,t){this.x=e,this.y=t,this.w=14,this.h=14,this.vx=-S.enemySpeed,this.vy=0,this.onGround=!1,this.dead=!1,this.squished=0,this.animT=0,this.frame=0}update(e,t){if(this.squished>0){this.squished-=e,this.squished<=0&&(this.dead=!0);return}this.vy=Math.min(S.maxFall,this.vy+S.gravity*e);let n=[];C(this,t,this.vx*e,this.vy*e,n);let r=!1;for(let e of n)e.axis===`x`&&(this.vx=-this.vx),e.axis===`y`&&e.dir>0&&(r=!0);this.onGround=r,this.animT+=e,this.animT>.18&&(this.animT=0,this.frame^=1),this.y>t.pixelH+64&&(this.dead=!0)}stomp(){this.squished=.5,this.vx=0}render(e,t,n){let r=this.squished>0?b.goombaSquish:this.frame===0?b.goombaA:b.goombaB;e.drawImage(r,Math.floor(this.x-t-1),Math.floor(this.y-n-2))}},I=class{constructor(e,t){this.x=e,this.y=t,this.w=14,this.h=22,this.vx=-S.enemySpeed,this.vy=0,this.state=`walk`,this.dead=!1,this.animT=0,this.frame=0}update(e,t){this.vy=Math.min(S.maxFall,this.vy+S.gravity*e);let n=[];C(this,t,this.vx*e,this.vy*e,n);for(let e of n)e.axis===`x`&&(this.vx=-this.vx);this.animT+=e,this.animT>.18&&(this.animT=0,this.frame^=1),this.y>t.pixelH+64&&(this.dead=!0)}stomp(e){this.state===`walk`?(this.state=`shell`,this.vx=0,this.h=14,this.y+=8):this.state===`shell`?(this.state=`sliding`,this.vx=(this.x+this.w/2>e?1:-1)*S.shellSpeed):(this.state=`shell`,this.vx=0)}hitFromSide(e){return this.state===`shell`?(this.state=`sliding`,this.vx=(this.x+this.w/2>e.x+e.w/2?1:-1)*S.shellSpeed,!1):!0}render(e,t,n){let r;this.state===`walk`?(r=this.frame===0?b.koopaA:b.koopaB,e.drawImage(r,Math.floor(this.x-t-1),Math.floor(this.y-n-2))):(r=b.koopaShell,e.drawImage(r,Math.floor(this.x-t-1),Math.floor(this.y-n-2)))}},L=class e{constructor(e,t){this.x=e,this.y=t,this.w=12,this.h=16,this.dead=!1,this.animT=0,this.frame=0,this.bobT=Math.random()*Math.PI*2,this.popVy=0,this.popT=0}update(e){this.animT+=e,this.bobT+=e*4,this.animT>.14&&(this.animT=0,this.frame^=1),this.popT>0&&(this.popVy+=1800*e,this.y+=this.popVy*e,this.popT-=e,this.popT<=0&&(this.dead=!0))}render(e,t,n){let r=this.frame===0?b.coinA:b.coinB,i=this.popT>0?0:Math.sin(this.bobT)*1.5;e.drawImage(r,Math.floor(this.x-t-2),Math.floor(this.y-n+i-1))}static popFromBlock(t,n){let r=new e(t,n-16);return r.popVy=-360,r.popT=.55,r}},R=class{constructor(e,t,n){this.x=e,this.y=t,this.w=14,this.h=14,this.kind=n,this.vx=n===`mushroom`?80:0,this.vy=0,this.dead=!1,this.spawnT=.6,this.startY=t}update(e,t){if(this.spawnT>0){this.spawnT-=e,this.y-=e*26;return}if(this.kind===`mushroom`){this.vy=Math.min(S.maxFall,this.vy+S.gravity*e);let n=[];C(this,t,this.vx*e,this.vy*e,n);for(let e of n)e.axis===`x`&&(this.vx=-this.vx)}this.y>t.pixelH+64&&(this.dead=!0)}render(e,t,n){let r=this.kind===`mushroom`?b.mushroom:b.flower;e.drawImage(r,Math.floor(this.x-t-1),Math.floor(this.y-n-2))}},ye=class{constructor(e,t,n){this.x=e,this.y=t,this.w=6,this.h=6,this.vx=S.fireballSpeed*n,this.vy=100,this.dead=!1,this.spinT=0,this.life=1.2}update(e,t,n,r){if(this.life-=e,this.life<=0){this.dead=!0;return}this.vy=Math.min(S.maxFall,this.vy+S.fireballGravity*e);let i=[];C(this,t,this.vx*e,this.vy*e,i);for(let e of i)e.axis===`y`&&e.dir>0?this.vy=S.fireballBounce:e.axis===`x`&&(this.dead=!0);this.spinT+=e*20;for(let e of n)if(!e.dead&&w(this,e)){e.dead=!0,this.dead=!0,r.addScore(200);break}}render(e,t,n){let r=b.fireball;e.save();let i=Math.floor(this.x-t+this.w/2),a=Math.floor(this.y-n+this.h/2);e.translate(i,a),e.rotate(this.spinT),e.drawImage(r,-r.width/2,-r.height/2),e.restore()}},be=class{constructor(e,t,n,r){this.x=e,this.y=t,this.vx=n,this.vy=r,this.life=.7,this.dead=!1}update(e){this.vy+=1500*e,this.x+=this.vx*e,this.y+=this.vy*e,this.life-=e,this.life<=0&&(this.dead=!0)}render(e,t,n){e.fillStyle=`#c4731d`,e.fillRect(Math.floor(this.x-t),Math.floor(this.y-n),4,4)}},z=null,B=null,V=!1,H={init(){if(z){z.state===`suspended`&&z.resume().catch(()=>{});return}try{z=new(window.AudioContext||window.webkitAudioContext),B=z.createGain(),B.gain.value=.18,B.connect(z.destination)}catch{z=null}},setMuted(e){V=!!e},jump(){U({type:`square`,f0:520,f1:880,dur:.18,gain:.5})},coin(){U({type:`square`,f0:988,f1:1318,dur:.07,gain:.4}),setTimeout(()=>U({type:`square`,f0:1318,f1:1318,dur:.12,gain:.4}),60)},stomp(){U({type:`square`,f0:220,f1:80,dur:.16,gain:.5})},hit(){U({type:`sawtooth`,f0:440,f1:60,dur:.55,gain:.45})},bump(){U({type:`square`,f0:140,f1:100,dur:.05,gain:.4})},brick(){U({type:`square`,f0:180,f1:60,dur:.1,gain:.5}),xe(.08,.25)},powerup(){[523,659,784,988,1175].forEach((e,t)=>{setTimeout(()=>U({type:`square`,f0:e,f1:e,dur:.08,gain:.4}),t*60)})},fire(){U({type:`square`,f0:800,f1:200,dur:.1,gain:.35})},win(){[659,784,988,1175,1568].forEach((e,t)=>{setTimeout(()=>U({type:`square`,f0:e,f1:e,dur:.13,gain:.45}),t*100)})},death(){[440,392,349,294,220].forEach((e,t)=>{setTimeout(()=>U({type:`triangle`,f0:e,f1:e,dur:.16,gain:.5}),t*110)})},oneUp(){[659,880,1175,1568].forEach((e,t)=>{setTimeout(()=>U({type:`square`,f0:e,f1:e,dur:.1,gain:.4}),t*70)})}};function U({type:e,f0:t,f1:n,dur:r,gain:i}){if(!z||V)return;let a=z.currentTime,o=z.createOscillator(),s=z.createGain();o.type=e,o.frequency.setValueAtTime(t,a),o.frequency.exponentialRampToValueAtTime(Math.max(20,n),a+r),s.gain.setValueAtTime(i,a),s.gain.exponentialRampToValueAtTime(1e-4,a+r),o.connect(s).connect(B),o.start(a),o.stop(a+r+.02)}function xe(e,t){if(!z||V)return;let n=z.currentTime,r=z.createBuffer(1,Math.floor(z.sampleRate*e),z.sampleRate),i=r.getChannelData(0);for(let e=0;e<i.length;e++)i[e]=(Math.random()*2-1)*(1-e/i.length);let a=z.createBufferSource();a.buffer=r;let o=z.createGain();o.gain.value=t,a.connect(o).connect(B),a.start(n)}var W=1/60,Se=.05,Ce=class{constructor(e,t,n){this.canvas=e,this.ctx=e.getContext(`2d`,{alpha:!1}),this.ctx.imageSmoothingEnabled=!1,this.hud=t,this.overlay=n,this.sfx=H,he(),this.tNow=0,this.acc=0,this.score=0,this.coins=0,this.lives=3,this.timer=300,this.timerRemainder=0,this.state=`title`,this.cameraShake=0,this.reset(!0)}reset(e){this.level=new _e,this.camera=new ve(320,192),this.camera.setBounds(this.level.pixelW,this.level.pixelH),this.player=new P(32,(this.level.h-4)*16),this.enemies=[],this.pickups=[],this.fireballs=[],this.particles=[],this.popupCoins=[];for(let e of this.level.enemySpawns){let t=e.x*16,n=e.y*16-2;e.type===`goomba`?this.enemies.push(new F(t,n)):e.type===`koopa`&&this.enemies.push(new I(t,n-8))}for(let e of this.level.coinSpawns)this.pickups.push(new L(e.x*16,e.y*16));this.timer=300,this.timerRemainder=0,e&&(this.score=0,this.coins=0,this.lives=3),this.refreshHUD()}start(){this.state=`play`,this.overlay.root.classList.add(`hidden`)}showOverlay(e,t,n){this.overlay.title.textContent=e,this.overlay.body.textContent=t,this.overlay.btn.textContent=n,this.overlay.root.classList.remove(`hidden`)}refreshHUD(){this.hud.score.textContent=`SCORE `+String(this.score).padStart(6,`0`),this.hud.coins.textContent=`x`+String(this.coins).padStart(2,`0`),this.hud.lives.textContent=`LIVES `+this.lives,this.hud.time.textContent=`TIME `+String(Math.max(0,Math.ceil(this.timer))).padStart(3,`0`)}addScore(e){this.score+=e,this.refreshHUD()}addCoin(e=1){this.coins+=e,this.coins>=100&&(this.coins-=100,this.lives+=1,this.sfx.oneUp()),this.sfx.coin(),this.addScore(200)}bumpTile(e,t,n){let r=this.level.at(e,t);if(r===`?`){let r=this.level.isPowerupQuestion(e,t);if(this.level.set(e,t,`U`),this.cameraShake=.08,this.sfx.bump(),r){this.level.consumePowerupQuestion(e,t);let r=n.isBig()?`flower`:`mushroom`;this.pickups.push(new R(e*16+1,t*16,r))}else this.popupCoins.push(L.popFromBlock(e*16,t*16)),this.addCoin(1)}else if(r===`B`)if(n.isBig()){this.level.set(e,t,`.`),this.addScore(50),this.sfx.brick();let n=e*16+8,r=t*16+8;for(let[e,t]of[[-80,-260],[80,-260],[-120,-180],[120,-180]])this.particles.push(new be(n,r,e,t))}else this.cameraShake=.08,this.sfx.bump()}spawnFireball(e){let t=e.x+(e.facing>0?e.w:-2),n=e.y+6;this.fireballs.push(new ye(t,n,e.facing)),this.sfx.fire()}onJump(){this.sfx.jump()}tick(e){if(this.state===`play`)for(this.acc+=Math.min(Se,e);this.acc>=W;)this.step(W),this.acc-=W;this.render()}step(e){this.tNow+=e,this.timerRemainder+=e,this.timerRemainder>=.4&&(--this.timer,this.timerRemainder=0,this.refreshHUD(),this.timer<=0&&!this.player.win&&!this.player.dead&&(this.player.takeDamage(),this.player.dead=!0)),this.player.update(e,this.level,this);for(let t of this.popupCoins)t.update(e);this.popupCoins=this.popupCoins.filter(e=>!e.dead);for(let t of this.enemies)t.update(e,this.level);for(let t of this.pickups)t.update(e,this.level);for(let t of this.fireballs)t.update(e,this.level,this.enemies,this);for(let t of this.particles)t.update(e);if(!this.player.dead&&!this.player.win)for(let e of this.enemies){if(e.dead||!w(this.player,e))continue;let t=this.player.y+this.player.h,n=e.y;if(this.player.vy>30&&t-this.player.vy*(1/60)<=n+4)e instanceof F?(e.stomp(),this.addScore(100)):e instanceof I&&(e.stomp(this.player.x+this.player.w/2),this.addScore(100)),this.player.vy=-260,this.player.holdingJump=E.jumpHeld,this.sfx.stomp();else if(e instanceof I&&e.state===`shell`&&Math.abs(e.vx)<1)e.hitFromSide(this.player),this.addScore(400),this.sfx.stomp();else{let e=!this.player.isBig();this.player.takeDamage(),this.sfx.hit(),e&&this.sfx.death()}}for(let e of this.pickups)if(!e.dead&&w(this.player,e)){if(e instanceof L)e.dead=!0,this.addCoin(1);else if(e instanceof R){if(e.spawnT>0)continue;e.dead=!0,this.player.powerUp(e.kind),this.addScore(e.kind===`flower`?1e3:500),this.sfx.powerup()}}!this.player.win&&this.level.flagpoleX!=null&&this.player.x+this.player.w>=this.level.flagpoleX&&this.player.x<=this.level.flagpoleX+16&&(this.player.win=!0,this.player.vx=0,this.player.vy=0,this.player.x=this.level.flagpoleX-4,this.addScore(1e3+Math.max(0,Math.floor(this.timer))*10),this.sfx.win()),this.enemies=this.enemies.filter(e=>!e.dead),this.pickups=this.pickups.filter(e=>!e.dead),this.fireballs=this.fireballs.filter(e=>!e.dead),this.particles=this.particles.filter(e=>!e.dead),this.player.dead&&(this.player.deadT=(this.player.deadT||0)+e,this.player.deadT>1.5&&(this.player.deadT=0,--this.lives,this.lives<=0?(this.state=`gameover`,this.showOverlay(`GAME OVER`,`Tap RESTART to try again.`,`RESTART`)):this.reset(!1),this.refreshHUD())),this.player.win&&this.player.winT>3.5&&(this.state=`win`,this.showOverlay(`YOU WIN!`,`Final score: ${this.score}.`,`PLAY AGAIN`)),this.cameraShake>0&&(this.cameraShake-=e),this.camera.follow(this.player)}render(){let e=this.ctx,{x:t,y:n}=this.camera,r=this.cameraShake>0?(Math.random()-.5)*4:0,i=this.cameraShake>0?(Math.random()-.5)*2:0;e.fillStyle=`#5C94FC`,e.fillRect(0,0,320,192);let a=b.hill,o=b.cloud,s=t*.5%(a.width*4);for(let t=-1;t<Math.ceil(320/(a.width*2))+2;t++){let n=t*a.width*2-s;e.drawImage(a,Math.floor(n+r),144+i)}let c=t*.3%(o.width*6);for(let t=-1;t<Math.ceil(320/(o.width*3))+2;t++){let n=t*o.width*3-c;e.drawImage(o,Math.floor(n+r),20+t%3*14+i)}this.level.render(e,t-r,n-i,320,192,this.tNow);for(let a of this.pickups)a.render(e,t-r,n-i);for(let a of this.popupCoins)a.render(e,t-r,n-i);for(let a of this.enemies)a.render(e,t-r,n-i);for(let a of this.fireballs)a.render(e,t-r,n-i);for(let a of this.particles)a.render(e,t-r,n-i);this.player.render(e,t-r,n-i)}},G=document.getElementById(`stage`),we=document.getElementById(`game-root`),K=document.getElementById(`overlay`),Te=document.getElementById(`overlay-title`),Ee=document.getElementById(`overlay-body`),q=document.getElementById(`overlay-btn`);G.width=320,G.height=192;function J(){let e=we.getBoundingClientRect(),t=Math.max(1,Math.floor(Math.min(e.width/320,e.height/192))),n=t*320<=e.width&&t*192<=e.height?t:Math.min(e.width/320,e.height/192);G.style.width=Math.floor(320*n)+`px`,G.style.height=Math.floor(192*n)+`px`}J(),window.addEventListener(`resize`,J),window.addEventListener(`orientationchange`,()=>setTimeout(J,100)),window.visualViewport&&window.visualViewport.addEventListener(`resize`,J),A({dpad:{up:document.querySelector(`.dpad-up`),down:document.querySelector(`.dpad-down`),left:document.querySelector(`.dpad-left`),right:document.querySelector(`.dpad-right`)},a:document.getElementById(`btn-a`),b:document.getElementById(`btn-b`)});var Y=new Ce(G,{score:document.getElementById(`hud-score`),coins:document.getElementById(`hud-coins`),lives:document.getElementById(`hud-lives`),time:document.getElementById(`hud-time`)},{root:K,title:Te,body:Ee,btn:q}),X=!1;function Z(e){if(!X){if(X=!0,e&&e.cancelable)try{e.preventDefault()}catch{}try{H.init()}catch{}(Y.state===`gameover`||Y.state===`win`)&&Y.reset(!0),Y.start(),setTimeout(()=>{window.scrollTo(0,1),J()},50),setTimeout(()=>{X=!1},250)}}for(let e of[q,K])e.addEventListener(`click`,Z),e.addEventListener(`pointerup`,Z);var Q=performance.now();function $(e){let t=Math.min(.1,(e-Q)/1e3);Q=e,Y.tick(t),requestAnimationFrame($)}requestAnimationFrame($);</script>
+  
+  </body>
+</html>
